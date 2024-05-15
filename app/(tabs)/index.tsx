@@ -1,70 +1,74 @@
-import { Image, StyleSheet, Platform } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { FlatList, Image, ScrollView, Text, View } from 'react-native';
+import { request, gql } from 'graphql-request';
+import { useEffect, useState } from 'react';
+import { Link } from 'expo-router';
+import Crausel from '@/components/Crausel';
 
 export default function HomeScreen() {
+  const [data, setData] = useState<any>([]);
+  const getData = async () => {
+  const query = gql`
+    {
+      products(first: 20) {
+        edges {
+          node {
+            id
+            title
+            description
+            featuredImage {
+              id
+              url
+            }
+          }
+        }
+      }
+    }
+    `;
+    const response = await request("https://mock.shop/api", query);
+    setData(response as unknown as any);
+  }
+
+  useEffect(() => {
+    getData();
+  }, []);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ScrollView>
+      <Crausel />
+      <View>
+        <View className='p-5 pt-10'>
+          <Text className='bg-white font-bold text-3xl'>Explore our new items</Text>
+        </View>
+        <View className=''>
+          {data?.products?.edges?.length > 0 && <FlatList
+            data={data?.products.edges}
+            ListHeaderComponent={() => {
+              return <View className='my-5'></View>
+            }}
+            contentContainerStyle={{ padding: 20 }}
+            showsHorizontalScrollIndicator={false}
+            ItemSeparatorComponent={() => {
+              return <View className='p-2'></View>
+            }}
+            horizontal={true}
+            renderItem={({ item }) => {
+              return <Link href={{ pathname: "/product", params: { id: item?.node?.id, title: item?.node?.title } }}>
+                <View className='items-center'>
+                  <View className=' items-center p-5 rounded-xl bg-white shadow-md' style={{ elevation: 10 }}>
+                    <Image width={250} height={250}
+                      className='rounded-xl h-[250px] w-[250px]'
+                      source={{ uri: item?.node?.featuredImage.url }}
+                      resizeMode='cover'
+                    />
+                    <Text className='font-bold p-2'>{item?.node?.title}</Text>
+                  </View>
+                </View>
+              </Link>
+            }}
+          />
+          }
+        </View>
+      </View>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
